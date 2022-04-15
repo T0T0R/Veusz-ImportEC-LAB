@@ -71,11 +71,57 @@ class ImportECLAB_CV(ImportPlugin):
 
             output = header_lines, data_lines
         return output
+    
+
+
+
+
+    def split_cycles(self, data_header, data_Np, do_split=False):
+        import numpy as np
+        cycle_index = data_header.index("cycle number")
+        cycle_no = int(data_Np[0, cycle_index])
+
+        if not do_split:
+            return [data_header], [data_Np]
+        
+        else:
+
+            #     Cycle 1          ,      Cycle 2 ...
+            # [[point, point, ...] , [point, point, ...]]
+            Cycles = [[]]
+            cycles_nos = [cycle_no]
+
+            for data_point in data_Np:
+                if int(data_point[cycle_index]) == cycle_no:
+                    Cycles[cycle_no - 1].append(list(data_point))
+                else:
+                    Cycles.append([list(data_point)])
+                    cycle_no += 1
+                    cycles_nos.append(cycle_no)
+            
+            Cycles_np = []
+            Data_headers = []
+
+            for cycle_list, cycle_no in zip(Cycles, cycles_nos):
+                Cycles_np.append(np.array(cycle_list, dtype=float))
+                header_with_cycle_no = [str(name) + " (" + str(cycle_no) + ")" for name in data_header]
+                Data_headers.append(header_with_cycle_no)
+        
+        return Data_headers, Cycles_np
+
+
+
 
 
     def __init__(self):
         from veusz.plugins import ImportPlugin
+        from veusz.plugins import ImportFieldCheck
+
         ImportPlugin.__init__(self)
+        self.fields = [
+            ImportFieldCheck("extract_cycles", descr="Import cycles as separate datasets."),
+            ]
+
     
     def doImport(self, params):
         from veusz.plugins import ImportDataset1D
@@ -94,11 +140,19 @@ class ImportECLAB_CV(ImportPlugin):
 
         data_Np = np.array(lines_list, dtype=float)
 
+        Data_headers, Cycles_np = self.split_cycles(data_header, data_Np, params.field_results["extract_cycles"])
+        imported_datasets = []
+
+        for data_header, data_Np in zip(Data_headers, Cycles_np):
+            labeled_datasets = zip(data_header, data_Np.T)
+            imported_datasets = imported_datasets + [ImportDataset1D(*data) for data in labeled_datasets]
+
+
 
         # Return two 1D datasets: one containing the Angle and the other containing the PSD value.
         # (PSD: Position-sensitive-detector)
-        labeled_datasets = zip(data_header, data_Np.T)
-        imported_datasets = [ImportDataset1D(*data) for data in labeled_datasets]
+        #labeled_datasets = zip(data_header, data_Np.T)
+        #imported_datasets = [ImportDataset1D(*data) for data in labeled_datasets]
         #imported_datasets = [ImportDataset1D(data_header[0], data_Np[:, 0]) ]
         return imported_datasets
 
