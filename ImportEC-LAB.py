@@ -120,6 +120,7 @@ class ImportECLAB_CV(ImportPlugin):
         ImportPlugin.__init__(self)
         self.fields = [
             ImportFieldCheck("extract_cycles", descr="Import cycles as separate datasets."),
+            ImportFieldCheck("import_all_data", descr="Import misc. data."),
             ]
 
     
@@ -139,6 +140,22 @@ class ImportECLAB_CV(ImportPlugin):
             lines_list.append(line.replace(',', '.').split('\t')[:-1])
 
         data_Np = np.array(lines_list, dtype=float)
+
+        if not params.field_results["import_all_data"]:
+            misc_data = ['mode',
+                        'ox/red',
+                        'error',
+                        'control changes',
+                        'counter inc.',
+                        'I Range',
+                        ]
+
+            misc_data_indices = [data_header.index(misc_item) for misc_item in misc_data]
+            data_header = [name for name in data_header if name not in misc_data]
+            data_Np = np.delete(data_Np, misc_data_indices, axis=1)
+        
+
+
 
         Data_headers, Cycles_np = self.split_cycles(data_header, data_Np, params.field_results["extract_cycles"])
         imported_datasets = []
