@@ -124,11 +124,11 @@ class ImportECLAB_CV(ImportPlugin):
                 line = file.readline()
                 line_no += 1
             length_header = int(line.split(":")[-1])
-            
+
             while line_no < length_header - 1:    # Parse the header.
                 header_lines.append(file.readline())
                 line_no += 1
-            
+
             while not line == '':   # Parse the data part.
                 line = file.readline()
                 data_lines.append(line)
@@ -138,7 +138,7 @@ class ImportECLAB_CV(ImportPlugin):
 
             output = header_lines, data_lines
         return output
-    
+
 
 
 
@@ -150,7 +150,7 @@ class ImportECLAB_CV(ImportPlugin):
 
         if not do_split:
             return [data_header], [data_Np]
-        
+
         else:
 
             #     Cycle 1          ,      Cycle 2 ...
@@ -165,7 +165,7 @@ class ImportECLAB_CV(ImportPlugin):
                     Cycles.append([list(data_point)])
                     cycle_no += 1
                     cycles_nos.append(cycle_no)
-            
+
             Cycles_np = []
             Data_headers = []
 
@@ -173,7 +173,7 @@ class ImportECLAB_CV(ImportPlugin):
                 Cycles_np.append(np.array(cycle_list, dtype=float))
                 header_with_cycle_no = [str(name) + " (" + str(cycle_no) + ")" for name in data_header]
                 Data_headers.append(header_with_cycle_no)
-        
+
         return Data_headers, Cycles_np
 
 
@@ -190,7 +190,7 @@ class ImportECLAB_CV(ImportPlugin):
             ImportFieldCheck("import_all_data", descr="Import misc. data."),
             ]
 
-    
+
     def doImport(self, params):
         from veusz.plugins import ImportDataset1D
         import numpy as np
@@ -222,14 +222,8 @@ class ImportECLAB_CV(ImportPlugin):
             data_Np = np.delete(data_Np, misc_data_indices, axis=1)
 
 
-        Data_headers, Cycles_np = self.split_cycles(data_header, data_Np, params.field_results["extract_cycles"])
-        imported_datasets = []
 
-        for data_header, data_Np in zip(Data_headers, Cycles_np):
-            labeled_datasets = zip(data_header, data_Np.T)
-            imported_datasets = imported_datasets + [ImportDataset1D(*data) for data in labeled_datasets]
-
-
+        # Add generated values to the data table.
         MyHeader = self.HeaderInfo(header_lines)
         surface = MyHeader.m_header_infos["surface"]
         mass = MyHeader.m_header_infos["mass"]
@@ -238,31 +232,38 @@ class ImportECLAB_CV(ImportPlugin):
         dataset_i_per_surface = np.array([intensity / surface for intensity in list(data_Np[:, intensity_index])])
         dataset_Q_per_mass = np.array([charge / mass for charge in list(data_Np[:, charge_index])])
 
-        generated_datasets = [ImportDataset1D("<I>_per_surf/mA/"+MyHeader.m_header_infos["surface_unit"],
-                                              dataset_i_per_surface),
-                              ImportDataset1D("(Q-Qo)_per_mass/C/" + MyHeader.m_header_infos["mass_unit"],
-                                              dataset_Q_per_mass),
-                              ImportDataset1D("(Q-Qo)/mA.h",
-                                              np.array([charge /3.6 for charge in list(data_Np[:, charge_index])])),
-                              ImportDataset1D("(Q-Qo)_per_mass/mA.h/" + MyHeader.m_header_infos["mass_unit"],
-                                              np.array([charge /3.6 for charge in list(dataset_Q_per_mass)])),
-                              ImportDataset1D("mass/" + MyHeader.m_header_infos["mass_unit"],
+        data_header.append("<I>_per_surf/mA/" + MyHeader.m_header_infos["surface_unit"])
+        data_Np = np.c_[data_Np, dataset_i_per_surface]
+        data_header.append("(Q-Qo)_per_mass/C/" + MyHeader.m_header_infos["mass_unit"])
+        data_Np = np.c_[data_Np, dataset_Q_per_mass]
+        data_header.append("(Q-Qo)/mA.h")
+        data_Np = np.c_[data_Np, np.array([charge / 3.6 for charge in list(data_Np[:, charge_index])])]
+        data_header.append("(Q-Qo)_per_mass/mA.h/")
+        data_Np = np.c_[data_Np, np.array([charge / 3.6 for charge in list(dataset_Q_per_mass)])]
+        generated_datasets_single_values = [ImportDataset1D("mass/" + MyHeader.m_header_infos["mass_unit"],
                                               mass),
-                              ImportDataset1D("surface/" + MyHeader.m_header_infos["surface_unit"],
-                                              surface),
-                              ImportDataset1D("scan_rate/" + MyHeader.m_header_infos["scan_rate_unit"],
-                                              MyHeader.m_header_infos["scan_rate"]),
-                              ImportDataset1D("offset_voltage/VvsNHE",
-                                              MyHeader.m_header_infos["offset_voltage_vs_SHE"]),
-                              ]
+                                          ImportDataset1D("surface/" + MyHeader.m_header_infos["surface_unit"],
+                                                          surface),
+                                          ImportDataset1D("scan_rate/" + MyHeader.m_header_infos["scan_rate_unit"],
+                                                          MyHeader.m_header_infos["scan_rate"]),
+                                          ImportDataset1D("offset_voltage/VvsNHE",
+                                                          MyHeader.m_header_infos["offset_voltage_vs_SHE"]),
+                                          ]
 
 
-        # Return two 1D datasets: one containing the Angle and the other containing the PSD value.
-        # (PSD: Position-sensitive-detector)
-        #labeled_datasets = zip(data_header, data_Np.T)
-        #imported_datasets = [ImportDataset1D(*data) for data in labeled_datasets]
-        #imported_datasets = [ImportDataset1D(data_header[0], data_Np[:, 0]) ]
-        return imported_datasets + generated_datasets
+
+
+
+        # Split data into separate cyles.
+        Data_headers, Cycles_np = self.split_cycles(data_header, data_Np, params.field_results["extract_cycles"])
+        imported_datasets = []
+
+        for data_header, data_Np in zip(Data_headers, Cycles_np):
+            labeled_datasets = zip(data_header, data_Np.T)
+            imported_datasets = imported_datasets + [ImportDataset1D(*data) for data in labeled_datasets]
+
+
+        return imported_datasets + generated_datasets_single_values
 
 # add the class to the registry.
 importpluginregistry.append(ImportECLAB_CV)
