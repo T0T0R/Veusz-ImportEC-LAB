@@ -28,6 +28,13 @@
 from veusz.plugins import ImportPlugin, importpluginregistry
 
 
+
+
+
+
+
+
+
 class ImportECLAB_CV(ImportPlugin):
     name = "EC-LAB CV"
     author = "Arthur Langlard"
@@ -36,6 +43,66 @@ class ImportECLAB_CV(ImportPlugin):
     # Comment this line to remove the tab of the plugin
     promote_tab = 'EC-LAB CV'
     file_extensions = set(['.mpt', '.MPT'])
+
+    class HeaderInfo:
+        m_header_lines = []
+        m_header_names_str = ['Reference electrode :',
+                              'Electrode surface area :',
+                              'Characteristic mass :',
+                              'dE/dt',
+                              'dE/dt unit',
+                              ]
+
+        m_header_names = ["reference_electrode",
+                          "surface",
+                          "mass",
+                          "scan_rate",
+                          "scan_rate_unit",
+                          "offset_voltage_vs_SHE",
+                          "surface_unit",
+                          "mass_unit",
+                          ]
+
+
+        m_header_infos = {}
+
+        def __init__(self, header_lines):
+            self.m_header_lines = header_lines
+            extracted_parameters = []
+
+            for name in self.m_header_names_str:
+                extracted_parameters.append(self.extract_parameter_from_string(name).strip())
+
+            index_of_offset_voltage = \
+                [i for i, _ in enumerate(extracted_parameters[0]) if extracted_parameters[0].startswith("(", i)][-1]
+            offset_voltage_vs_SHE = float(extracted_parameters[0][index_of_offset_voltage + 1: -2].replace(",", "."))
+            ref_electrode_str = extracted_parameters[0][:index_of_offset_voltage - 1]
+            surface, surface_unit = extracted_parameters[1].split(" ")
+            surface = float(surface.replace(",", "."))
+            mass, mass_unit = extracted_parameters[2].split(" ")
+            mass = float(mass.replace(",", "."))
+            scan_rate = float(extracted_parameters[3].replace(",", "."))
+            scan_rate_unit = extracted_parameters[4]
+
+            parameters = [ref_electrode_str,
+                          surface,
+                          mass,
+                          scan_rate,
+                          scan_rate_unit,
+                          offset_voltage_vs_SHE,
+                          surface_unit,
+                          mass_unit,
+                          ]
+
+            self.m_header_infos = dict(zip(self.m_header_names, parameters))
+
+        def extract_parameter_from_string(self, name):
+            for line in self.m_header_lines:
+                if name in line:
+                    return line.rstrip().split(name)[-1]
+
+
+
 
 
     def parse_header_data(self, file):
@@ -153,8 +220,6 @@ class ImportECLAB_CV(ImportPlugin):
             misc_data_indices = [data_header.index(misc_item) for misc_item in misc_data]
             data_header = [name for name in data_header if name not in misc_data]
             data_Np = np.delete(data_Np, misc_data_indices, axis=1)
-        
-
 
 
         Data_headers, Cycles_np = self.split_cycles(data_header, data_Np, params.field_results["extract_cycles"])
@@ -165,13 +230,39 @@ class ImportECLAB_CV(ImportPlugin):
             imported_datasets = imported_datasets + [ImportDataset1D(*data) for data in labeled_datasets]
 
 
+        MyHeader = self.HeaderInfo(header_lines)
+        surface = MyHeader.m_header_infos["surface"]
+        mass = MyHeader.m_header_infos["mass"]
+        intensity_index = data_header.index("<I>/mA")
+        charge_index = data_header.index("(Q-Qo)/C")
+        dataset_i_per_surface = np.array([intensity / surface for intensity in list(data_Np[:, intensity_index])])
+        dataset_Q_per_mass = np.array([charge / mass for charge in list(data_Np[:, charge_index])])
+
+        generated_datasets = [ImportDataset1D("<I>_per_surf/mA/"+MyHeader.m_header_infos["surface_unit"],
+                                              dataset_i_per_surface),
+                              ImportDataset1D("(Q-Qo)_per_mass/C/" + MyHeader.m_header_infos["mass_unit"],
+                                              dataset_Q_per_mass),
+                              ImportDataset1D("(Q-Qo)/mA.h",
+                                              np.array([charge /3.6 for charge in list(data_Np[:, charge_index])])),
+                              ImportDataset1D("(Q-Qo)_per_mass/mA.h/" + MyHeader.m_header_infos["mass_unit"],
+                                              np.array([charge /3.6 for charge in list(dataset_Q_per_mass)])),
+                              ImportDataset1D("mass/" + MyHeader.m_header_infos["mass_unit"],
+                                              mass),
+                              ImportDataset1D("surface/" + MyHeader.m_header_infos["surface_unit"],
+                                              surface),
+                              ImportDataset1D("scan_rate/" + MyHeader.m_header_infos["scan_rate_unit"],
+                                              MyHeader.m_header_infos["scan_rate"]),
+                              ImportDataset1D("offset_voltage/VvsNHE",
+                                              MyHeader.m_header_infos["offset_voltage_vs_SHE"]),
+                              ]
+
 
         # Return two 1D datasets: one containing the Angle and the other containing the PSD value.
         # (PSD: Position-sensitive-detector)
         #labeled_datasets = zip(data_header, data_Np.T)
         #imported_datasets = [ImportDataset1D(*data) for data in labeled_datasets]
         #imported_datasets = [ImportDataset1D(data_header[0], data_Np[:, 0]) ]
-        return imported_datasets
+        return imported_datasets + generated_datasets
 
 # add the class to the registry.
 importpluginregistry.append(ImportECLAB_CV)
