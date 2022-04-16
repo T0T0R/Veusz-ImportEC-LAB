@@ -63,11 +63,13 @@ class ImportECLAB_CV(ImportPlugin):
                           "mass_unit",
                           ]
 
+        m_header_string = ""
 
         m_header_infos = {}
 
         def __init__(self, header_lines):
             self.m_header_lines = header_lines
+            self.m_header_string = ''.join(self.m_header_lines[1:])
             extracted_parameters = []
 
             for name in self.m_header_names_str:
@@ -111,6 +113,8 @@ class ImportECLAB_CV(ImportPlugin):
 
         output = [None,None]
         flag_Is_correct_file = (file.readline() == "EC-Lab ASCII FILE\n")
+        if not flag_Is_correct_file:
+            raise ValueError('Not a EC-LAB file.')
 
         if flag_Is_correct_file:
 
@@ -191,16 +195,17 @@ class ImportECLAB_CV(ImportPlugin):
             ]
 
 
-    def doImport(self, params):
-        from veusz.plugins import ImportDataset1D
-        import numpy as np
-        """Actually imports data.
-        params is a ImportPluginParams object.
-        Return a list of ImportDataset1D objects.
-        """
-        f = params.openFileWithEncoding()
 
-        header_lines, data_lines = self.parse_header_data(f)
+
+    def import_dataset(self, params):
+        import numpy as np
+
+        f = params.openFileWithEncoding()
+        try:
+            header_lines, data_lines = self.parse_header_data(f)
+        except ValueError:
+            raise
+
         data_header = data_lines[0].split('\t')[:-1]    # Remove the last character (end of line '\n').
         lines_list = []
         for line in data_lines[1:]:
@@ -220,11 +225,46 @@ class ImportECLAB_CV(ImportPlugin):
             misc_data_indices = [data_header.index(misc_item) for misc_item in misc_data]
             data_header = [name for name in data_header if name not in misc_data]
             data_Np = np.delete(data_Np, misc_data_indices, axis=1)
+            MyHeader = self.HeaderInfo(header_lines)
 
+        return MyHeader, data_header, data_Np
+
+
+
+    def getPreview(self, params):
+        import numpy as np
+        try:
+            MyHeader, data_header, data_Np = self.import_dataset(params)
+        except ValueError:
+            return ("File cannot be displayed", False)
+
+        header_string = MyHeader.m_header_string
+        data_header_string = '\t'.join(data_header)
+        data_string = "\n"
+        max_data_len = 20
+        if len(data_Np) < max_data_len:
+            max_data_len = len(data_Np) - 1
+        for data_line in data_Np[:max_data_len]:
+            for value in data_line:
+                data_string = data_string + "{:.4e}".format(value) + "\t"
+            data_string = data_string + "\n"
+
+        return (header_string + data_header_string + data_string, True)
+
+
+
+    def doImport(self, params):
+        from veusz.plugins import ImportDataset1D
+        import numpy as np
+        """Actually imports data.
+        params is a ImportPluginParams object.
+        Return a list of ImportDataset1D objects.
+        """
+
+        MyHeader, data_header, data_Np = self.import_dataset(params)
 
 
         # Add generated values to the data table.
-        MyHeader = self.HeaderInfo(header_lines)
         surface = MyHeader.m_header_infos["surface"]
         mass = MyHeader.m_header_infos["mass"]
         intensity_index = data_header.index("<I>/mA")
