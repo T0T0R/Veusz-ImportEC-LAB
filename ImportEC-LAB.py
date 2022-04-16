@@ -204,7 +204,7 @@ class ImportECLAB_CV(ImportPlugin):
         data_header = data_lines[0].split('\t')[:-1]    # Remove the last character (end of line '\n').
         lines_list = []
         for line in data_lines[1:]:
-            lines_list.append(line.replace(',', '.').split('\t')[:-1])
+            lines_list.append(line.replace(',', '.').split('\t'))
 
         data_Np = np.array(lines_list, dtype=float)
 
@@ -229,17 +229,17 @@ class ImportECLAB_CV(ImportPlugin):
         mass = MyHeader.m_header_infos["mass"]
         intensity_index = data_header.index("<I>/mA")
         charge_index = data_header.index("(Q-Qo)/C")
-        dataset_i_per_surface = np.array([intensity / surface for intensity in list(data_Np[:, intensity_index])])
-        dataset_Q_per_mass = np.array([charge / mass for charge in list(data_Np[:, charge_index])])
+        dataset_i_per_surface = np.array([intensity / surface for intensity in data_Np[:, intensity_index] ])
+        dataset_Q_per_mass = np.array([charge / mass for charge in data_Np[:, charge_index] ])
 
         data_header.append("<I>_per_surf/mA/" + MyHeader.m_header_infos["surface_unit"])
         data_Np = np.c_[data_Np, dataset_i_per_surface]
         data_header.append("(Q-Qo)_per_mass/C/" + MyHeader.m_header_infos["mass_unit"])
         data_Np = np.c_[data_Np, dataset_Q_per_mass]
         data_header.append("(Q-Qo)/mA.h")
-        data_Np = np.c_[data_Np, np.array([charge / 3.6 for charge in list(data_Np[:, charge_index])])]
+        data_Np = np.c_[data_Np, np.array([charge / 3.6 for charge in data_Np[:, charge_index] ])]
         data_header.append("(Q-Qo)_per_mass/mA.h/")
-        data_Np = np.c_[data_Np, np.array([charge / 3.6 for charge in list(dataset_Q_per_mass)])]
+        data_Np = np.c_[data_Np, np.array([charge / 3.6 for charge in dataset_Q_per_mass ])]
         generated_datasets_single_values = [ImportDataset1D("mass/" + MyHeader.m_header_infos["mass_unit"],
                                               mass),
                                           ImportDataset1D("surface/" + MyHeader.m_header_infos["surface_unit"],
