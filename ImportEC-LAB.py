@@ -39,6 +39,7 @@ class ImportECLAB_CV(ImportPlugin):
     name = "EC-LAB CV"
     author = "Arthur Langlard"
     description = "Imports cyclic voltammetry measurements from EC-LAB files."
+    descriptor = "Cyclic Voltammetry\n"
 
     # Comment this line to remove the tab of the plugin
     promote_tab = 'EC-LAB CV'
@@ -69,7 +70,7 @@ class ImportECLAB_CV(ImportPlugin):
 
         def __init__(self, header_lines):
             self.m_header_lines = header_lines
-            self.m_header_string = ''.join(self.m_header_lines[1:])
+            self.m_header_string = ''.join(self.m_header_lines)
             extracted_parameters = []
 
             for name in self.m_header_names_str:
@@ -132,8 +133,10 @@ class ImportECLAB_CV(ImportPlugin):
 
             file.readline()
             line_no += 1
-            if not (file.readline() == "Cyclic Voltammetry\n"):
+            if not (file.readline() == self.descriptor):
                 raise ValueError('Not a Cyclic Voltammetry file.')
+            else:
+                header_lines.append(self.descriptor)
             line_no += 1
 
             while line_no < length_header - 1:    # Parse the header.
@@ -340,6 +343,8 @@ class ImportECLAB_GC(ImportPlugin):
     name = "EC-LAB GC"
     author = "Arthur Langlard"
     description = "Imports galvanostatic cycling measurements from EC-LAB files."
+    descriptor = "Galvanostatic Cycling with Potential Limitation\n"
+
 
     # Comment this line to remove the tab of the plugin
     promote_tab = 'EC-LAB GC'
@@ -372,7 +377,7 @@ class ImportECLAB_GC(ImportPlugin):
 
         def __init__(self, header_lines):
             self.m_header_lines = header_lines
-            self.m_header_string = ''.join(self.m_header_lines[1:])
+            self.m_header_string = ''.join(self.m_header_lines)
             extracted_parameters = []
 
             for name in self.m_header_names_str:
@@ -440,8 +445,11 @@ class ImportECLAB_GC(ImportPlugin):
 
             file.readline()
             line_no += 1
-            if not (file.readline() == "Galvanostatic Cycling with Potential Limitation\n"):
+            if not (file.readline() == self.descriptor):
                 raise ValueError('Not a Galvanostatic Cycling file.')
+            else:
+                header_lines.append(self.descriptor)
+
             line_no += 1
 
             while line_no < length_header - 1:    # Parse the header.
