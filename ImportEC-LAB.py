@@ -384,14 +384,20 @@ class ImportECLAB_GC(ImportPlugin):
             surface = float(surface.replace(",", "."))
             mass, mass_unit = extracted_parameters[2].split(" ")
             mass = float(mass.replace(",", "."))
-            scan_rate = float(extracted_parameters[3].replace(",", "."))
-            scan_rate_unit = extracted_parameters[4]
+
+            #scan_rate = float(extracted_parameters[3].replace(",", "."))
+            #scan_rate_unit = extracted_parameters[4]
+            currents = [float(current) for current in extracted_parameters[3].replace(",", ".").split()]
+            currents_units = extracted_parameters[4].split()
+
+            threshold_voltages = [float(current) for current in extracted_parameters[5].replace(",", ".").split()]
 
             parameters = [ref_electrode_str,
                           surface,
                           mass,
-                          scan_rate,
-                          scan_rate_unit,
+                          currents,
+                          currents_units,
+                          threshold_voltages,
                           offset_voltage_vs_SHE,
                           surface_unit,
                           mass_unit,
@@ -527,15 +533,22 @@ class ImportECLAB_GC(ImportPlugin):
                         'ox/red',
                         'error',
                         'control changes',
+                        'Ns changes',
                         'counter inc.',
                         'I Range',
+                        'Ns',
+                        'dq/mA.h',
+                        'control/V/mA',
+                        'half cycle',
+                        'control/V',
+                        'control/mA',
                         ]
 
             misc_data_indices = [data_header.index(misc_item) for misc_item in misc_data]
             data_header = [name for name in data_header if name not in misc_data]
             data_Np = np.delete(data_Np, misc_data_indices, axis=1)
-            MyHeader = self.HeaderInfo(header_lines)
 
+        MyHeader = self.HeaderInfo(header_lines)
         return MyHeader, data_header, data_Np
 
 
