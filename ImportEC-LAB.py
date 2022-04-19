@@ -278,7 +278,7 @@ class ImportECLAB_CV(ImportPlugin):
         data_Np = np.c_[data_Np, dataset_Q_per_mass]
         data_header.append("(Q-Qo)/mA.h")
         data_Np = np.c_[data_Np, np.array([charge / 3.6 for charge in data_Np[:, charge_index] ])]
-        data_header.append("(Q-Qo)_per_mass/mA.h/")
+        data_header.append("(Q-Qo)_per_mass/mA.h/" + MyHeader.m_header_infos["mass_unit"])
         data_Np = np.c_[data_Np, np.array([charge / 3.6 for charge in dataset_Q_per_mass ])]
         generated_datasets_single_values = [ImportDataset1D("mass/" + MyHeader.m_header_infos["mass_unit"],
                                               mass),
