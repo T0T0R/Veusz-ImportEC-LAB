@@ -461,10 +461,9 @@ class ImportECLAB_GC(ImportPlugin):
 
 
 
-    def split_cycles(self, data_header, data_Np, do_split=False):
+    def split_by_variable(self, data_header, data_Np, cycling_index, do_split=False):
         import numpy as np
-        cycle_index = data_header.index("cycle number")
-        cycle_no = int(data_Np[0, cycle_index])
+        cycle_no = int(data_Np[0, cycling_index])
 
         if not do_split:
             return [data_header], [data_Np]
@@ -477,13 +476,13 @@ class ImportECLAB_GC(ImportPlugin):
             cycles_nos = [cycle_no]
 
             for data_point in data_Np:
-                if int(data_point[cycle_index]) == cycle_no:
-                    Cycles[cycle_no - 1].append(list(data_point))
+                if int(data_point[cycling_index]) == cycle_no:
+                    Cycles[-1].append(list(data_point))
                 else:
                     Cycles.append([list(data_point)])
                     cycle_no += 1
                     cycles_nos.append(cycle_no)
-
+            
             Cycles_np = []
             Data_headers = []
 
@@ -505,7 +504,9 @@ class ImportECLAB_GC(ImportPlugin):
         ImportPlugin.__init__(self)
         self.fields = [
             ImportFieldCheck("extract_cycles", descr="Import cycles as separate datasets."),
+            ImportFieldCheck("extract_steps", descr="Import steps as separate datasets."),
             ImportFieldCheck("import_all_data", descr="Import misc. data."),
+            
             ]
 
 
@@ -533,15 +534,16 @@ class ImportECLAB_GC(ImportPlugin):
                         'error',
                         'control changes',
                         'Ns changes',
+                        'Ns',
                         'counter inc.',
                         'I Range',
-                        'Ns',
                         'dq/mA.h',
                         'control/V/mA',
-                        'half cycle',
                         'control/V',
                         'control/mA',
                         ]
+            if not params.field_results["extract_steps"]:
+                 misc_data = misc_data + ['half cycle']
 
             misc_data_indices = [data_header.index(misc_item) for misc_item in misc_data]
             data_header = [name for name in data_header if name not in misc_data]
@@ -558,6 +560,7 @@ class ImportECLAB_GC(ImportPlugin):
             MyHeader, data_header, data_Np = self.import_dataset(params)
         except ValueError:
             return ("File cannot be displayed", False)
+
 
         header_string = MyHeader.m_header_string
         data_header_string = '\t'.join(data_header)
@@ -604,10 +607,34 @@ class ImportECLAB_GC(ImportPlugin):
 
 
 
-
+        Data_headers = [data_header]
+        Cycles_np = [data_Np]
 
         # Split data into separate cyles.
-        Data_headers, Cycles_np = self.split_cycles(data_header, data_Np, params.field_results["extract_cycles"])
+        if params.field_results["extract_steps"]:
+            cycling_index_for_steps = data_header.index('half cycle')
+            Data_headers, Cycles_np = self.split_by_variable(data_header, data_Np, cycling_index_for_steps, params.field_results["extract_steps"])
+
+
+        D_h_temp = []
+        C_np_temp = []
+
+        Data_headers_b = []
+        Cycles_np_b = []
+
+        if params.field_results["extract_cycles"]:
+            cycling_index_for_cycles = data_header.index('cycle number')
+            for data_header, data_Np in zip(Data_headers, Cycles_np):
+            
+                D_h_temp, C_np_temp = self.split_by_variable(data_header, data_Np, cycling_index_for_cycles, params.field_results["extract_cycles"])
+                Data_headers_b = Data_headers_b + D_h_temp
+                Cycles_np_b = Cycles_np_b + C_np_temp
+
+            Data_headers, Cycles_np = Data_headers_b, Cycles_np_b
+
+
+
+        #Data_headers, Cycles_np = self.split_by_variable(data_header, data_Np, params.field_results["extract_cycles"])
         imported_datasets = []
 
         for data_header, data_Np in zip(Data_headers, Cycles_np):
