@@ -115,6 +115,8 @@ class ImportECLAB_CV(ImportPlugin):
         flag_Is_correct_file = (file.readline() == "EC-Lab ASCII FILE\n")
         if not flag_Is_correct_file:
             raise ValueError('Not a EC-LAB file.')
+        
+        
 
         if flag_Is_correct_file:
 
@@ -128,6 +130,12 @@ class ImportECLAB_CV(ImportPlugin):
                 line = file.readline()
                 line_no += 1
             length_header = int(line.split(":")[-1])
+
+            file.readline()
+            line_no += 1
+            if not (file.readline() == "Cyclic Voltammetry\n"):
+                raise ValueError('Not a Cyclic Voltammetry file.')
+            line_no += 1
 
             while line_no < length_header - 1:    # Parse the header.
                 header_lines.append(file.readline())
