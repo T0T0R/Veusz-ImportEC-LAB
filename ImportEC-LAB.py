@@ -195,13 +195,23 @@ class ImportECLAB_CV(ImportPlugin):
 
 
     def __init__(self):
-        from veusz.plugins import ImportPlugin
-        from veusz.plugins import ImportFieldCheck
+        from veusz.plugins import ImportPlugin, ImportFieldCheck, ImportFieldFloat, ImportFieldCombo
 
         ImportPlugin.__init__(self)
+
         self.fields = [
             ImportFieldCheck("extract_cycles", descr="Import cycles as separate datasets."),
             ImportFieldCheck("import_all_data", descr="Import misc. data."),
+
+            ImportFieldCheck("change_surface", descr="Define a surface"),
+            ImportFieldFloat("surface", descr="Surface", default=1.0),
+            ImportFieldCombo("surface_unit", descr="Surface unit", items=("m2", "cm2", "mm2"),
+                             editable=False, default="cm2"),
+
+            ImportFieldCheck("change_mass", descr="Define a mass"),
+            ImportFieldFloat("mass", descr="Mass", default=1.0),
+            ImportFieldCombo("mass_unit", descr="Mass unit", items=("g", "mg", "ng"),
+                             editable=False, default="mg")
             ]
 
 
@@ -276,8 +286,16 @@ class ImportECLAB_CV(ImportPlugin):
 
 
         # Add generated values to the data table.
+        if params.field_results["change_surface"]:
+            MyHeader.m_header_infos["surface"] = params.field_results["surface"]
+            MyHeader.m_header_infos["surface_unit"] = params.field_results["surface_unit"]
         surface = MyHeader.m_header_infos["surface"]
+
+        if params.field_results["change_mass"]:
+            MyHeader.m_header_infos["mass"] = params.field_results["mass"]
+            MyHeader.m_header_infos["mass_unit"] = params.field_results["mass_unit"]
         mass = MyHeader.m_header_infos["mass"]
+
         intensity_index = data_header.index("<I>/mA")
         charge_index = data_header.index("(Q-Qo)/C")
         dataset_i_per_surface = np.array([intensity / surface for intensity in data_Np[:, intensity_index] ])
@@ -507,14 +525,23 @@ class ImportECLAB_GC(ImportPlugin):
 
 
     def __init__(self):
-        from veusz.plugins import ImportPlugin
-        from veusz.plugins import ImportFieldCheck
+        from veusz.plugins import ImportPlugin, ImportFieldCheck, ImportFieldFloat, ImportFieldCombo
 
         ImportPlugin.__init__(self)
         self.fields = [
             ImportFieldCheck("extract_cycles", descr="Import cycles as separate datasets."),
             ImportFieldCheck("extract_steps", descr="Import steps as separate datasets."),
             ImportFieldCheck("import_all_data", descr="Import misc. data."),
+
+            ImportFieldCheck("change_surface", descr="Define a surface"),
+            ImportFieldFloat("surface", descr="Surface", default=1.0),
+            ImportFieldCombo("surface_unit", descr="Surface unit", items=("m2", "cm2", "mm2"),
+                             editable=False, default="cm2"),
+
+            ImportFieldCheck("change_mass", descr="Define a mass"),
+            ImportFieldFloat("mass", descr="Mass", default=1.0),
+            ImportFieldCombo("mass_unit", descr="Mass unit", items=("g", "mg", "ng"),
+                             editable=False, default="mg")
             
             ]
 
@@ -598,8 +625,16 @@ class ImportECLAB_GC(ImportPlugin):
 
 
         # Add generated values to the data table.
-        mass = MyHeader.m_header_infos["mass"]
+        if params.field_results["change_surface"]:
+            MyHeader.m_header_infos["surface"] = params.field_results["surface"]
+            MyHeader.m_header_infos["surface_unit"] = params.field_results["surface_unit"]
         surface = MyHeader.m_header_infos["surface"]
+
+        if params.field_results["change_mass"]:
+            MyHeader.m_header_infos["mass"] = params.field_results["mass"]
+            MyHeader.m_header_infos["mass_unit"] = params.field_results["mass_unit"]
+        mass = MyHeader.m_header_infos["mass"]
+        
         capacity_index = data_header.index("Capacity/mA.h")
         dataset_Q_per_mass = np.array([capacity / mass for capacity in data_Np[:, capacity_index] ])
 
