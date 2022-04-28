@@ -19,7 +19,7 @@
 
 # Author: Arthur Langlard, arthur.langlard@universite-paris-saclay.fr
 # Start of the project: 15-04-2022
-# Last modification: 15-04-2022
+# Last modification: 28-04-2022
 #
 # This software is a plugin for the Veusz software.
 
