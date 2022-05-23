@@ -76,9 +76,14 @@ class ImportECLAB_CV(ImportPlugin):
             for name in self.m_header_names_str:
                 extracted_parameters.append(self.extract_parameter_from_string(name).strip())
 
-            index_of_offset_voltage = [i for i, _ in enumerate(extracted_parameters[0]) if extracted_parameters[0].startswith("(", i)][-1]
-            offset_voltage_vs_SHE = float(extracted_parameters[0][index_of_offset_voltage + 1: -2].replace(",", "."))
-            ref_electrode_str = extracted_parameters[0][:index_of_offset_voltage - 1]
+            if not extracted_parameters[0] == "": # If the reference electrode was specified.
+                index_of_offset_voltage = [i for i, _ in enumerate(extracted_parameters[0]) if extracted_parameters[0].startswith("(", i)][-1]
+                offset_voltage_vs_SHE = float(extracted_parameters[0][index_of_offset_voltage + 1: -2].replace(",", "."))
+                ref_electrode_str = extracted_parameters[0][:index_of_offset_voltage - 1]
+            else:
+                offset_voltage_vs_SHE = 0.0
+                ref_electrode_str = "NHE"
+                
             surface, surface_unit = extracted_parameters[1].split(" ")
             surface = float(surface.replace(",", "."))
             mass, mass_unit = extracted_parameters[2].split(" ")
@@ -99,9 +104,14 @@ class ImportECLAB_CV(ImportPlugin):
             self.m_header_infos = dict(zip(self.m_header_names, parameters))
 
         def extract_parameter_from_string(self, name):
+            parameter_found = False
             for line in self.m_header_lines:
                 if name in line:
+                    parameter_found = True
                     return line.rstrip().split(name)[-1]
+            
+            if not parameter_found:
+                return ""
 
 
 
@@ -401,9 +411,14 @@ class ImportECLAB_GC(ImportPlugin):
             for name in self.m_header_names_str:
                 extracted_parameters.append(self.extract_parameter_from_string(name).strip())
 
-            index_of_offset_voltage = [i for i, _ in enumerate(extracted_parameters[0]) if extracted_parameters[0].startswith("(", i)][-1]
-            offset_voltage_vs_SHE = float(extracted_parameters[0][index_of_offset_voltage + 1: -2].replace(",", "."))
-            ref_electrode_str = extracted_parameters[0][:index_of_offset_voltage - 1]
+            if not extracted_parameters[0] == "": # If the reference electrode was specified.
+                index_of_offset_voltage = [i for i, _ in enumerate(extracted_parameters[0]) if extracted_parameters[0].startswith("(", i)][-1]
+                offset_voltage_vs_SHE = float(extracted_parameters[0][index_of_offset_voltage + 1: -2].replace(",", "."))
+                ref_electrode_str = extracted_parameters[0][:index_of_offset_voltage - 1]
+            else:
+                offset_voltage_vs_SHE = 0.0
+                ref_electrode_str = "NHE"
+                
             surface, surface_unit = extracted_parameters[1].split(" ")
             surface = float(surface.replace(",", "."))
             mass, mass_unit = extracted_parameters[2].split(" ")
@@ -429,9 +444,14 @@ class ImportECLAB_GC(ImportPlugin):
             self.m_header_infos = dict(zip(self.m_header_names, parameters))
 
         def extract_parameter_from_string(self, name):
+            parameter_found = False
             for line in self.m_header_lines:
                 if name in line:
+                    parameter_found = True
                     return line.rstrip().split(name)[-1]
+            
+            if not parameter_found:
+                return ""
 
 
 
