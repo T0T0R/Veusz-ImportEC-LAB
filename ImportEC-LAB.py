@@ -599,7 +599,7 @@ class ImportECLAB_GC(ImportPlugin):
                         'control/mA',
                         ]
             if not params.field_results["extract_steps"]:
-                 misc_data = misc_data + ['half cycle']
+                misc_data = misc_data + ['half cycle']
 
             misc_data_indices = [data_header.index(misc_item) for misc_item in misc_data]
             data_header = [name for name in data_header if name not in misc_data]
