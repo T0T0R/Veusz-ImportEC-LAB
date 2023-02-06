@@ -1,5 +1,5 @@
 # ##### BEGIN GPL LICENCE BLOCK #####
-#  Copyright (C) 2022  Arthur Langlard
+#  Copyright (C) 2022-2023  Arthur Langlard
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 
 # Author: Arthur Langlard, arthur.langlard@universite-paris-saclay.fr
 # Start of the project: 15-04-2022
-# Last modification: 06-02-2022
+# Last modification: 06-02-2023
 #
 # This software is a plugin for the Veusz software.
 
