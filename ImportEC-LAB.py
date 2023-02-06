@@ -19,7 +19,7 @@
 
 # Author: Arthur Langlard, arthur.langlard@universite-paris-saclay.fr
 # Start of the project: 15-04-2022
-# Last modification: 28-04-2022
+# Last modification: 06-02-2022
 #
 # This software is a plugin for the Veusz software.
 
@@ -949,10 +949,10 @@ class ImportECLAB_CA(ImportPlugin):
 
     def getPreview(self, params):
         import numpy as np
-        #try:
-        MyHeader, data_header, data_Np = self.import_dataset(params)
-        #except ValueError:
-            #return ("File cannot be displayed", False)
+        try:
+            MyHeader, data_header, data_Np = self.import_dataset(params)
+        except ValueError:
+            return ("File cannot be displayed", False)
 
 
         header_string = MyHeader.m_header_string
